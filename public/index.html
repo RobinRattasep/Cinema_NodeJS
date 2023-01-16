@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cinema Movie Listings</title>
+</head>
+<body>
+<h1>Cinema Movie Listings</h1>
+<ul id="movie-list"></ul>
+<form id="book-form">
+    <label for="movie">Select a movie to book:</label>
+    <select name="movie" id="movie-options"></select>
+    <input type="submit" value="Book Movie">
+</form>
+<script>
+    const movieList = document.getElementById("movie-list");
+    const movieOptions = document.getElementById("movie-options");
+    const bookForm = document.getElementById("book-form");
+    bookForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const selectedMovie = movieOptions.value;
+        alert("You have booked a ticket for " + selectedMovie);
+    });
+    fetch('/movies')
+        .then(response => response.json())
+        .then(movies => {
+            movies.forEach(movie => {
+                const li = document.createElement("li");
+                li.innerHTML = movie.title + " - Showtimes: " + movie.showtimes.join(', ');
+                movieList.appendChild(li);
+                const option = document.createElement("option");
+                option.value = movie.title;
+                option.innerHTML = movie.title;
+                movieOptions.appendChild(option);
+            });
+        });
+</script>
+</body>
+</html>
