@@ -9,30 +9,83 @@
 <form id="book-form">
     <label for="movie">Select a movie to book:</label>
     <select name="movie" id="movie-options"></select>
+    <label for="showtime">Select a showtime to book:</label>
+    <select name="showtime" id="showtime-options"></select>
+    <label for="seat">Select a seat to book:</label>
+    <select name="seat" id="seat-options"></select>
     <input type="submit" value="Book Movie">
 </form>
+
 <script>
-    const movieList = document.getElementById("movie-list");
     const movieOptions = document.getElementById("movie-options");
+    const showtimeOptions = document.getElementById("showtime-options");
+    const seatOptions = document.getElementById("seat-options");
     const bookForm = document.getElementById("book-form");
-    bookForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const selectedMovie = movieOptions.value;
-        alert("You have booked a ticket for " + selectedMovie);
-    });
+
     fetch('/movies')
         .then(response => response.json())
         .then(movies => {
             movies.forEach(movie => {
-                const li = document.createElement("li");
-                li.innerHTML = movie.title + " - Showtimes: " + movie.showtimes.join(', ');
-                movieList.appendChild(li);
+                // create movie options
                 const option = document.createElement("option");
                 option.value = movie.title;
                 option.innerHTML = movie.title;
                 movieOptions.appendChild(option);
+                // create showtime options
+                movie.showtimes.forEach(showtime => {
+                    const showtimeOption = document.createElement("option");
+                    showtimeOption.value = showtime;
+                    showtimeOption.innerHTML = showtime;
+                    showtimeOptions.appendChild(showtimeOption);
+                });
+                // create seat options
+                for (let i = 1; i <= 100; i++) {
+                    const seatOption = document.createElement("option");
+                    seatOption.value = i;
+                    seatOption.innerHTML = i;
+                    seatOptions.appendChild(seatOption);
+                }
             });
         });
+
+
+    bookForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const selectedMovie = movieOptions.value;
+        const selectedShowtime = showtimeOptions.value;
+        const selectedSeat = seatOptions.value;
+
+        // Validate that all fields are selected
+        if(!selectedMovie || !selectedShowtime || !selectedSeat) {
+            alert("Please select a movie, showtime, and seat.");
+            return;
+        }
+
+        // Send a POST request to the server to book the ticket
+        fetch('/book', {
+            method: 'POST',
+            body: JSON.stringify({ movie: selectedMovie, showtime: selectedShowtime, seat: selectedSeat }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Handle the response from the server
+                if(data.success) {
+                    alert("You have booked a ticket for " + selectedMovie + " at " + selectedShowtime + " seat " + selectedSeat);
+                } else {
+                    alert("Error: " + data.error);
+                }
+            })
+            .catch(error => {
+                // Handle any errors that occur during the request
+                console.error(error);
+                alert("An error occurred while booking your ticket. Please try again later.");
+            });
+    });
+
+
 </script>
 </body>
 </html>
