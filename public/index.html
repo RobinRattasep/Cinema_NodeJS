@@ -4,6 +4,14 @@
     <title>Cinema Movie Listings</title>
 </head>
 <body>
+<form id="login-form">
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username">
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password">
+    <input type="submit" value="Log In">
+</form>
+
 <h1>Cinema Movie Listings</h1>
 <ul id="movie-list"></ul>
 <form id="book-form">
@@ -17,6 +25,32 @@
 </form>
 
 <script>
+
+    const loginForm = document.getElementById("login-form");
+
+    loginForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        fetch('/login', {
+            method: 'POST',
+            body: JSON.stringify({ username: username, password: password }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                } else {
+                    alert(data.error);
+                }
+            });
+    });
+
+
     const movieOptions = document.getElementById("movie-options");
     const showtimeOptions = document.getElementById("showtime-options");
     const seatOptions = document.getElementById("seat-options");

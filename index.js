@@ -5,6 +5,10 @@ const path = require('path');
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
+const cookieParser = require('cookie-parser');
+
+app.use(cookieParser());
+
 
 const movies = [
     { title: 'The Shawshank Redemption', showtimes: ['3:00pm', '7:00pm'] },
@@ -13,6 +17,41 @@ const movies = [
     { title: 'The Dark Knight', showtimes: ['8:00pm'] },
 ];
 
+
+const users = [
+    { username: 'admin', password: 'password', isAdmin: true },
+    { username: 'user', password: 'password', isAdmin: false }
+];
+
+function findUser(username, password) {
+    for (let i = 0; i < users.length; i++) {
+        if (users[i].username === username && users[i].password === password) {
+            return users[i];
+        }
+    }
+    return null;
+}
+
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+
+    // Validate the input
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Please provide a username and password' });
+    }
+
+    // Check if the username and password match a valid user
+    const user = findUser(username, password);
+    if (!user) {
+        return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    // Set a cookie with the user's information
+    res.cookie('user', user);
+    console.log(user.isAdmin)
+    // Return a success message
+    return res.json({ message: 'You have successfully logged in' });
+});
 
 
 let takenSeats = [];
