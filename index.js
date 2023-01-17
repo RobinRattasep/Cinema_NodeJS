@@ -1,13 +1,25 @@
 const express = require('express');
 const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
 const port = 3000;
 const path = require('path');
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
+const hour = 60 * 60 * 1000;
+
 
 const cookieParser = require('cookie-parser');
+app.use(cookieParser('password'));
 
 app.use(cookieParser());
+
+io.on('connection', (socket) => {
+    console.log('a user connected');
+    socket.on('disconnect', () => {
+        console.log('user disconnected');
+    });
+});
 
 
 const movies = [
@@ -47,7 +59,7 @@ app.post('/login', (req, res) => {
     }
 
     // Set a cookie with the user's information
-    res.cookie('user', user);
+    res.cookie('user', user, { signed: true, expires: new Date(Date.now() + hour) });
     console.log(user.isAdmin)
     // Return a success message
     return res.json({ message: 'You have successfully logged in' });
@@ -58,7 +70,7 @@ let takenSeats = [];
 
 function isSeatTaken(movie, showtime, seat) {
     return takenSeats.some(s => s.movie === movie && s.showtime === showtime && s.seat === seat);
-    const movieExist = movies.some(m => m.title === movie && m.showtimes.includes(showtime));
+    const movieExist = movies.some(m => m.title === movie && (m.showtimes.indexOf(showtime) !== -1));
 
     if (!movieExist) {
         return res.status(400).json({ error: 'Movie or Show time not available' });
@@ -105,6 +117,34 @@ app.post('/book', (req, res) => {
 });
 
 
-app.listen(port, () => {
+app.post('/add-movie', (req, res) => {
+    // check if user is logged in
+    if (!req.signedCookies.user) {
+        return res.status(401).json({ error: 'You must be logged in to add a movie' });
+    }
+    // check if user is admin
+    if (!req.signedCookies.user.isAdmin) {
+        return res.status(401).json({ error: 'You must be an admin to add a movie' });
+    }
+    // get the movie data from the request body
+    const { title, showtimes } = req.body;
+    console.log(req.body)
+    console.log(req.body.showtimes)
+    console.log(req.body.title)
+    // validate the movie data
+    if (!title || !showtimes ) {
+        return res.status(400).json({ error: 'Please provide a valid title and showtimes array' });
+    }
+    // add the movie to the movies array
+    const newMovie = req.body;
+    newMovie.showtimes = JSON.parse(req.body.showtimes);
+    movies.push(newMovie);
+    io.emit('newMovie', { title, showtimes });
+    return res.json({ message: `Successfully added movie ${title} with showtimes ${showtimes}` });
+});
+
+
+
+http.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });

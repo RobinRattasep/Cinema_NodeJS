@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Cinema Movie Listings</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
 </head>
 <body>
 <form id="login-form">
@@ -10,6 +11,17 @@
     <label for="password">Password:</label>
     <input type="password" id="password" name="password">
     <input type="submit" value="Log In">
+</form>
+
+
+<form id="add-movie-form">
+    <label for="title">Movie Title:</label>
+    <input type="text" name="title" id="title-input">
+    <br>
+    <label for="showtimes">Movie Showtimes (comma separated):</label>
+    <input type="text" name="showtimes" id="showtimes-input">
+    <br>
+    <input type="submit" value="Add Movie">
 </form>
 
 <h1>Cinema Movie Listings</h1>
@@ -24,6 +36,23 @@
     <input type="submit" value="Book Movie">
 </form>
 
+<script>
+    const movieOptions = document.getElementById("movie-options");
+    const socket = io();
+
+    // Listen for the newMovie event
+    socket.on('newMovie', (movie) => {
+        const option = document.createElement("option");
+        option.innerHTML = movie.title;
+        movieOptions.appendChild(option);
+        const showtimes = movie.showtimes.split(',');
+        // Add the new movie to the list
+        const movieList = document.getElementById("movie-list");
+        const newMovie = document.createElement("li");
+        newMovie.innerHTML = `${movie.title} - ${showtimes.join(', ')}`;
+        movieList.appendChild(newMovie);
+    });
+</script>
 <script>
 
     const loginForm = document.getElementById("login-form");
@@ -50,8 +79,36 @@
             });
     });
 
+    const addMovieForm = document.getElementById("add-movie-form");
+    addMovieForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const title = document.getElementById("title-input").value;
+        const showtimes = document.getElementById("showtimes-input").value;
+        fetch('/add-movie', {
+            method: 'POST',
+            body: JSON.stringify({ title, showtimes }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Handle the response from the server
+                if(data.success) {
+                    alert(`Successfully added movie ${title} with showtimes ${showtimes}`);
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                // Handle any errors that occur during the request
+                console.error(error);
+                alert("An error occurred while adding the movie. Please try again later.");
+            });
+    });
 
-    const movieOptions = document.getElementById("movie-options");
+
+
     const showtimeOptions = document.getElementById("showtime-options");
     const seatOptions = document.getElementById("seat-options");
     const bookForm = document.getElementById("book-form");
