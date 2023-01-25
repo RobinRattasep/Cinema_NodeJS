@@ -55,6 +55,36 @@
 </script>
 <script>
 
+
+
+    function saveMoviesToLocalStorage(movie) {
+        // Retrieve the current list of movies from localStorage
+        let movies = JSON.parse(localStorage.getItem("movies")) || [];
+        // Push the new movie to the list
+        movies.push(movie);
+        // Set the updated list back to localStorage
+        localStorage.setItem("movies", JSON.stringify(movies));
+    }
+
+
+
+    function renderMovies(movies) {
+        // Clear any existing movie elements
+        const movieList = document.getElementById("movie-list");
+        movieList.innerHTML = "";
+
+        // Iterate through the movies list
+        for (let i = 0; i < movies.length; i++) {
+            // Create a new movie element
+            const movieElement = document.createElement("li");
+            movieElement.innerHTML = `${movies[i].title} - ${movies[i].showtimes.join(", ")}`;
+            movieList.appendChild(movieElement);
+        }
+    }
+
+
+
+
     const loginForm = document.getElementById("login-form");
 
     loginForm.addEventListener("submit", (event) => {
@@ -79,6 +109,9 @@
             });
     });
 
+
+
+
     const addMovieForm = document.getElementById("add-movie-form");
     addMovieForm.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -92,13 +125,19 @@
             }
         })
             .then(response => response.json())
-            .then(data => {
+            .then(() => {
                 // Handle the response from the server
-                if(data.success) {
+                    let movies = JSON.parse(localStorage.getItem("movies")) || [];
+
+                    //console.log(movies)
+                    var movie1 = (JSON.stringify({ title, showtimes }))
+                    var movie = JSON.parse(movie1)
+                    // Push the new movie to the list
+                    movies.push(movie);
+                    // Set the updated list back to localStorage
+                    localStorage.setItem("movies", JSON.stringify(movies));
                     alert(`Successfully added movie ${title} with showtimes ${showtimes}`);
-                } else {
-                    alert(`Error: ${data.error}`);
-                }
+                    //saveMoviesToLocalStorage(response.json);
             })
             .catch(error => {
                 // Handle any errors that occur during the request
@@ -114,30 +153,72 @@
     const bookForm = document.getElementById("book-form");
 
     fetch('/movies')
-        .then(response => response.json())
-        .then(movies => {
-            movies.forEach(movie => {
-                // create movie options
-                const option = document.createElement("option");
-                option.value = movie.title;
-                option.innerHTML = movie.title;
-                movieOptions.appendChild(option);
-                // create showtime options
-                movie.showtimes.forEach(showtime => {
-                    const showtimeOption = document.createElement("option");
-                    showtimeOption.value = showtime;
-                    showtimeOption.innerHTML = showtime;
-                    showtimeOptions.appendChild(showtimeOption);
+        .then(response => {
+            if (response.ok) {
+                response.json().then(servermovies => {
+                    let movies;
+                    if (localStorage.length !== 0) {
+                        movies = JSON.parse(localStorage.getItem("movies"));
+                    } else {
+                        fetch('/movies')
+                            .then(response => {
+                                if (response.ok) {
+                                    response.json().then(data => {
+                                        movies = data;
+                                        localStorage.setItem("movies", JSON.stringify(movies));
+                                    });
+                                } else {
+                                    movies = serverMovies;
+                                    console.log("Response is not OK");
+                                }
+                            })
+                            .catch(error => {
+                                console.error(error);
+                            });
+                    }
+// create options for the dropdown using movies from localStorage
+                    movies.forEach(movie => {
+
+
+
+
+
+                        // create movie options
+                        const option = document.createElement("option");
+                        option.value = movie.title;
+                        option.innerHTML = movie.title;
+                        movieOptions.appendChild(option);
+
+
+
+
+
+                        // create showtime options
+                        movie.showtimes.forEach(showtime => {
+                            const showtimeOption = document.createElement("option");
+                            showtimeOption.value = showtime;
+                            showtimeOption.innerHTML = showtime;
+                            showtimeOptions.appendChild(showtimeOption);
+                        });
+                        // create seat options
+                        for (let i = 1; i <= 100; i++) {
+                            const seatOption = document.createElement("option");
+                            seatOption.value = i;
+                            seatOption.innerHTML = i;
+                            seatOptions.appendChild(seatOption);
+                        }
+                    });
+
+
                 });
-                // create seat options
-                for (let i = 1; i <= 100; i++) {
-                    const seatOption = document.createElement("option");
-                    seatOption.value = i;
-                    seatOption.innerHTML = i;
-                    seatOptions.appendChild(seatOption);
-                }
-            });
+            } else {
+                console.log("Response is not OK");
+            }
+        })
+        .catch(error => {
+            console.error(error);
         });
+
 
 
     bookForm.addEventListener("submit", (event) => {
@@ -163,7 +244,7 @@
             .then(response => response.json())
             .then(data => {
                 // Handle the response from the server
-                if(data.success) {
+                if(success) {
                     alert("You have booked a ticket for " + selectedMovie + " at " + selectedShowtime + " seat " + selectedSeat);
                 } else {
                     alert("Error: " + data.error);
@@ -175,6 +256,54 @@
                 alert("An error occurred while booking your ticket. Please try again later.");
             });
     });
+
+
+    setTimeout(() => {
+        // Make a GET request to the backend to retrieve the updated movies array
+        fetch('/movies')
+            .then(response => response.json())
+            .then(movies => {
+                // Update the localStorage with the updated movies array
+                localStorage.setItem("movies", JSON.stringify(movies));
+                const movieOptions = document.getElementById("movie-options");
+                movieOptions.innerHTML = '';
+
+                movies.forEach(movie => {
+
+
+
+
+
+                    // create movie options
+                    const option = document.createElement("option");
+                    option.value = movie.title;
+                    option.innerHTML = movie.title;
+                    movieOptions.appendChild(option);
+
+
+
+
+
+                    // create showtime options
+                    movie.showtimes.forEach(showtime => {
+                        const showtimeOption = document.createElement("option");
+                        showtimeOption.value = showtime;
+                        showtimeOption.innerHTML = showtime;
+                        showtimeOptions.appendChild(showtimeOption);
+                    });
+                    // create seat options
+                    for (let i = 1; i <= 100; i++) {
+                        const seatOption = document.createElement("option");
+                        seatOption.value = i;
+                        seatOption.innerHTML = i;
+                        seatOptions.appendChild(seatOption);
+                    }
+                });
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }, 5000);
 
 
 </script>

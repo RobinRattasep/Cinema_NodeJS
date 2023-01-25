@@ -5,7 +5,6 @@ const options = {
     key: fs.readFileSync('C:/Users/robin/WebstormProjects/testtcinema/private.key'),
     cert: fs.readFileSync('C:/Users/robin/WebstormProjects/testtcinema/certificate.pem'),
 };
-console.log(options)
 //const http = require('http').createServer(app);
 const https = require('https');
 const server = https.createServer(options, app);
@@ -19,6 +18,8 @@ const cookieParser = require('cookie-parser');
 const cache = require('memory-cache');
 app.use(cookieParser('password'));
 app.use(cookieParser());
+
+
 
 
 io.on('connection', (socket) => {
@@ -77,11 +78,15 @@ app.post('/login', (req, res) => {
     return res.json({ message: 'You have successfully logged in' });
 });
 
-
 let takenSeats = [];
 
 function isSeatTaken(movie, showtime, seat) {
     return takenSeats.some(s => s.movie === movie && s.showtime === showtime && s.seat === seat);
+    const movieExist = movies.some(m => m.title === movie && (m.showtimes.indexOf(showtime) !== -1));
+
+    if (!movieExist) {
+        return res.status(400).json({ error: 'Movie or Show time not available' });
+    }
 
 }
 
@@ -89,14 +94,17 @@ function markSeatTaken(movie, showtime, seat) {
     takenSeats.push({ movie, showtime, seat });
 }
 
-
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 app.use(express.static(path.join(__dirname, 'views')));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-app.get('/movies', (req, res) => {
+app.get('/movies', async (req, res) => {
+    //await sleep(3000)
     res.json(movies);
 });
 
