@@ -1,19 +1,25 @@
 const express = require('express');
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const fs = require('fs');
+const options = {
+    key: fs.readFileSync('C:/Users/robin/WebstormProjects/testtcinema/private.key'),
+    cert: fs.readFileSync('C:/Users/robin/WebstormProjects/testtcinema/certificate.pem'),
+};
+console.log(options)
+//const http = require('http').createServer(app);
+const https = require('https');
+const server = https.createServer(options, app);
+const io = require('socket.io')(server);
 const port = 3000;
 const path = require('path');
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 const hour = 60 * 60 * 1000;
-
-
 const cookieParser = require('cookie-parser');
 const cache = require('memory-cache');
 app.use(cookieParser('password'));
-
 app.use(cookieParser());
+
 
 io.on('connection', (socket) => {
     console.log('a user connected');
@@ -142,7 +148,6 @@ app.post('/add-movie', (req, res) => {
 });
 
 
-
-http.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`);
+server.listen(port, () => {
+    console.log(`Example app listening at https://localhost:${port}`);
 });
