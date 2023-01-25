@@ -10,6 +10,7 @@ const hour = 60 * 60 * 1000;
 
 
 const cookieParser = require('cookie-parser');
+const cache = require('memory-cache');
 app.use(cookieParser('password'));
 
 app.use(cookieParser());
@@ -58,9 +59,14 @@ app.post('/login', (req, res) => {
         return res.status(401).json({ error: 'Invalid username or password' });
     }
 
+    // Create a new buffer and store the user's data in it
+    const userBuffer = new Buffer.from(JSON.stringify(user));
+
+    // Store the buffer in a cache
+    cache.put('user', userBuffer);
+
     // Set a cookie with the user's information
     res.cookie('user', user, { signed: true, expires: new Date(Date.now() + hour) });
-    console.log(user.isAdmin)
     // Return a success message
     return res.json({ message: 'You have successfully logged in' });
 });
@@ -70,11 +76,6 @@ let takenSeats = [];
 
 function isSeatTaken(movie, showtime, seat) {
     return takenSeats.some(s => s.movie === movie && s.showtime === showtime && s.seat === seat);
-    const movieExist = movies.some(m => m.title === movie && (m.showtimes.indexOf(showtime) !== -1));
-
-    if (!movieExist) {
-        return res.status(400).json({ error: 'Movie or Show time not available' });
-    }
 
 }
 
@@ -128,9 +129,6 @@ app.post('/add-movie', (req, res) => {
     }
     // get the movie data from the request body
     const { title, showtimes } = req.body;
-    console.log(req.body)
-    console.log(req.body.showtimes)
-    console.log(req.body.title)
     // validate the movie data
     if (!title || !showtimes ) {
         return res.status(400).json({ error: 'Please provide a valid title and showtimes array' });
