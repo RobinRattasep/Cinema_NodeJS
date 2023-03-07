@@ -1,11 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <title>Cinema Movie Listings</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="google-signin-client_id"
+          content="301229724153-uqr45k3dpt7ivu1mmj9d5cv2e3hjaq5m.apps.googleusercontent.com">
+
+
 </head>
 <body>
-<form id="login-form">
+
+
+<form id="logout-form" v-if="!sessionId">
+    <button onclick="deleteItems()">Logout</button>
+</form>
+
+<div id="signInDiv"
+     style="display: flex; justify-content: center; align-items: center; text-align: center; margin-top:5px;"></div>
+
+
+<form id="login-form" v-if="!sessionId">
     <label for="username">Username:</label>
     <input type="text" id="username" name="username">
     <label for="password">Password:</label>
@@ -13,12 +29,11 @@
     <input type="submit" value="Log In">
 </form>
 
-
-<form id="add-movie-form">
-    <label for="title">Movie Title:</label>
+<form id="add-movie-form" v-if="sessionId">
+    <label for="title-input">Movie Title:</label>
     <input type="text" name="title" id="title-input">
     <br>
-    <label for="showtimes">Movie Showtimes (comma separated):</label>
+    <label for="showtimes-input">Movie Showtimes (comma separated):</label>
     <input type="text" name="showtimes" id="showtimes-input">
     <br>
     <input type="submit" value="Add Movie">
@@ -27,16 +42,24 @@
 <h1>Cinema Movie Listings</h1>
 <ul id="movie-list"></ul>
 <form id="book-form">
-    <label for="movie">Select a movie to book:</label>
+    <label for="movie-options">Select a movie to book:</label>
     <select name="movie" id="movie-options"></select>
-    <label for="showtime">Select a showtime to book:</label>
+    <label for="showtime-options">Select a showtime to book:</label>
     <select name="showtime" id="showtime-options"></select>
-    <label for="seat">Select a seat to book:</label>
+    <label for="seat-options">Select a seat to book:</label>
     <select name="seat" id="seat-options"></select>
     <input type="submit" value="Book Movie">
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script>
+    new Vue({
+        el: '#app',
+        data: {
+            sessionId: localStorage.getItem('sessionId'),
+        },
+    });
+
     const movieOptions = document.getElementById("movie-options");
     const socket = io();
 
@@ -54,8 +77,27 @@
     });
 </script>
 <script>
+    // Check if the sessionid exists in localStorage
+    if (localStorage.getItem("sessionId")) {
+        // If it does, display the login form
+        document.getElementById("login-form").style.display = "none";
+        document.getElementById("book-form").style.display = "block";
+        document.getElementById("add-movie-form").style.display = "block";
+        document.getElementById("logout-form").style.display = "block";
+    } else {
+        // If it doesn't, hide the login form
+        document.getElementById("login-form").style.display = "block";
+        document.getElementById("book-form").style.display = "none";
+        document.getElementById("add-movie-form").style.display = "none";
+        document.getElementById("logout-form").style.display = "none";
+    }
+</script>
+<script>
 
 
+    function deleteItems() {
+        localStorage.clear();
+    }
 
     function saveMoviesToLocalStorage(movie) {
         // Retrieve the current list of movies from localStorage
@@ -65,7 +107,6 @@
         // Set the updated list back to localStorage
         localStorage.setItem("movies", JSON.stringify(movies));
     }
-
 
 
     function renderMovies(movies) {
@@ -83,8 +124,6 @@
     }
 
 
-
-
     const loginForm = document.getElementById("login-form");
 
     loginForm.addEventListener("submit", (event) => {
@@ -92,24 +131,26 @@
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
 
-        fetch('/login', {
+        fetch('/sessions', {
             method: 'POST',
-            body: JSON.stringify({ username: username, password: password }),
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({username: username, password: password})
         })
             .then(response => response.json())
             .then(data => {
-                if (data.message) {
-                    alert(data.message);
+                if (data.sessionId) {
+                    // parse the response and extract the sessionId and save it in a cookie
+                    localStorage.setItem("sessionId", data.sessionId);
+                    // refresh the browser
+                    location.reload();
                 } else {
-                    alert(data.error);
+                    alert(JSON.stringify(data));
                 }
             });
+
     });
-
-
 
 
     const addMovieForm = document.getElementById("add-movie-form");
@@ -117,27 +158,39 @@
         event.preventDefault();
         const title = document.getElementById("title-input").value;
         const showtimes = document.getElementById("showtimes-input").value;
-        fetch('/add-movie', {
+        let options = {
             method: 'POST',
-            body: JSON.stringify({ title, showtimes }),
+            body: JSON.stringify({title, showtimes}),
             headers: {
                 'Content-Type': 'application/json'
+
             }
-        })
+        };
+
+        // Add authentication headers if the user is logged in
+        const sessionId = localStorage.getItem("sessionId");
+        if (sessionId) {
+            options.headers['Authorization'] = `Bearer ${sessionId}`;
+        }
+
+        fetch('/movies', options)
             .then(response => response.json())
             .then(() => {
                 // Handle the response from the server
-                    let movies = JSON.parse(localStorage.getItem("movies")) || [];
+                let movies = JSON.parse(localStorage.getItem("movies")) || [];
 
-                    //console.log(movies)
-                    var movie1 = (JSON.stringify({ title, showtimes }))
-                    var movie = JSON.parse(movie1)
-                    // Push the new movie to the list
-                    movies.push(movie);
-                    // Set the updated list back to localStorage
-                    localStorage.setItem("movies", JSON.stringify(movies));
-                    alert(`Successfully added movie ${title} with showtimes ${showtimes}`);
-                    //saveMoviesToLocalStorage(response.json);
+                //console.log(movies)
+                var movie1 = (JSON.stringify({title, showtimes}))
+                var movie = JSON.parse(movie1)
+                // Push the new movie to the list
+                movies.push(movie);
+                // Set the updated list back to localStorage
+                console.log("test2")
+                console.log(movies)
+                localStorage.setItem("movies", JSON.stringify(movies));
+                console.log("test1")
+                alert(`Successfully added movie ${title} with showtimes ${showtimes}`);
+                //saveMoviesToLocalStorage(response.json);
             })
             .catch(error => {
                 // Handle any errors that occur during the request
@@ -145,7 +198,6 @@
                 alert("An error occurred while adding the movie. Please try again later.");
             });
     });
-
 
 
     const showtimeOptions = document.getElementById("showtime-options");
@@ -165,6 +217,7 @@
                                 if (response.ok) {
                                     response.json().then(data => {
                                         movies = data;
+                                        console.log("awdawda123")
                                         localStorage.setItem("movies", JSON.stringify(movies));
                                     });
                                 } else {
@@ -180,17 +233,11 @@
                     movies.forEach(movie => {
 
 
-
-
-
                         // create movie options
                         const option = document.createElement("option");
                         option.value = movie.title;
                         option.innerHTML = movie.title;
                         movieOptions.appendChild(option);
-
-
-
 
 
                         // create showtime options
@@ -220,7 +267,6 @@
         });
 
 
-
     bookForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const selectedMovie = movieOptions.value;
@@ -228,33 +274,26 @@
         const selectedSeat = seatOptions.value;
 
         // Validate that all fields are selected
-        if(!selectedMovie || !selectedShowtime || !selectedSeat) {
+        if (!selectedMovie || !selectedShowtime || !selectedSeat) {
             alert("Please select a movie, showtime, and seat.");
             return;
         }
 
         // Send a POST request to the server to book the ticket
-        fetch('/book', {
+        fetch('/bookings', {
             method: 'POST',
-            body: JSON.stringify({ movie: selectedMovie, showtime: selectedShowtime, seat: selectedSeat }),
+            body: JSON.stringify({movie: selectedMovie, showtime: selectedShowtime, seat: selectedSeat}),
             headers: {
                 'Content-Type': 'application/json'
             }
-        })
-            .then(response => response.json())
-            .then(data => {
-                // Handle the response from the server
-                if(success) {
-                    alert("You have booked a ticket for " + selectedMovie + " at " + selectedShowtime + " seat " + selectedSeat);
-                } else {
-                    alert("Error: " + data.error);
-                }
-            })
-            .catch(error => {
-                // Handle any errors that occur during the request
-                console.error(error);
-                alert("An error occurred while booking your ticket. Please try again later.");
-            });
+        }).then(data => {
+            // Handle the response from the server
+            alert("You have booked a ticket for " + selectedMovie + " at " + selectedShowtime + " seat " + selectedSeat);
+        }).catch(error => {
+            // Handle any errors that occur during the request
+            console.error(error);
+            alert("An error occurred while booking your ticket. Please try again later.");
+        });
     });
 
 
@@ -271,17 +310,11 @@
                 movies.forEach(movie => {
 
 
-
-
-
                     // create movie options
                     const option = document.createElement("option");
                     option.value = movie.title;
                     option.innerHTML = movie.title;
                     movieOptions.appendChild(option);
-
-
-
 
 
                     // create showtime options
@@ -304,6 +337,47 @@
                 console.error(error);
             });
     }, 5000);
+
+    window.onload = function () {
+        google.accounts.id.initialize({
+            client_id: '301229724153-uqr45k3dpt7ivu1mmj9d5cv2e3hjaq5m.apps.googleusercontent.com',
+            callback: handleCredentialResponse
+        });
+        // Google prompt
+        // google.accounts.id.prompt();
+
+        google.accounts.id.renderButton(
+            document.getElementById('signInDiv'),
+            {
+                theme: 'filled_blue',
+                size: 'large',
+                text: 'long',
+                type: 'standard'
+            }
+        )
+    };
+
+
+    function handleCredentialResponse(response) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'https://localhost:3000/oAuth2Login');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function () {
+            // check if the response is valid
+            if (xhr.status === 201) {
+                // parse the response
+                var response = JSON.parse(xhr.responseText);
+                let sessionId = response.sessionId
+                // parse the response and extract the sessionId and save it in a cookie
+                localStorage.setItem("sessionId", sessionId);
+                // refresh the browser
+                location.reload();
+            } else {
+                console.log('Request failed.  Returned status of ' + xhr.status + " " + xhr.statusText + " " + xhr.responseText);
+            }
+        };
+        xhr.send(JSON.stringify(response));
+    }
 
 
 </script>

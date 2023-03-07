@@ -1,0 +1,283 @@
+openapi: 3.0.1
+info:
+  title: My API
+  version: 1.0.0
+  description: A simple example of an API
+  termsOfService: 'http://swagger.io/terms/'
+  contact:
+    name: API Support
+    url: 'http://www.example.com'
+    email: support@example.com
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
+paths:
+  /bookings:
+    post:
+      requestBody:
+        description: A new `booking` to be created.
+        content:
+          '*/*':
+            schema:
+              $ref: '#/components/schemas/booking'
+        required: true
+      tags:
+        - /bookings
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '201':
+                  value:
+                    success: true
+                    message: >-
+                      You have successfully booked a ticket for ${movie} at ${showtime}
+                      seat ${seat}
+          description: Successful response.
+        '400':
+          headers:
+            '400':
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '400':
+                  value:
+                    message: Seat already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '400':
+                  value:
+                    message: Seat already taken
+          description: '400'
+      operationId: createbooking
+      summary: Create a booking
+      description: Creates a new instance of a `booking`.
+      x-codegen-request-body-name: body
+  /sessions:
+    summary: Path used to manage the list of sessions.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `session` entities.  This path
+      contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    post:
+      requestBody:
+        description: A new `session` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/session'
+            examples:
+              credentials:
+                value:
+                  username: Admin
+                  password: Password
+        required: true
+      tags:
+        - /sessions
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '201':
+                  value:
+                    sessionId: 2
+                    isAdmin: true
+          description: Successful response.
+        '400':
+          headers:
+            '400':
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '400':
+                  value:
+                    message: No input provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '400':
+                  value:
+                    message: No input provided
+          description: '400'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '401':
+                  value:
+                    error: Invalid username or password
+          description: Invalid credentials
+      operationId: createsession
+      summary: Create a session
+      description: Creates a new instance of a `session`.
+  /movies:
+    summary: Path used to manage the list of movies.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `movies` entities.  This path contains
+      a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/movie'
+          description: Successful response - returns an array of `movies` entities.
+      operationId: getmovies
+      summary: List All movies
+      description: Gets a list of all `movies` entities.
+    post:
+      requestBody:
+        description: A new `movies` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/movie'
+        required: true
+      responses:
+        '201':
+          description: Successful response.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '400':
+                  value:
+                    message: No input
+          description: No input
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '401':
+                  value:
+                    error: You must be logged in to add a movie
+          description: Not admin
+      security:
+        - cookieauth: [ ]
+      operationId: createmovies
+      summary: Create a movies
+      description: Creates a new instance of a `movies`.
+  /oAuth2Login:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/googleOAuthRequestBody'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/message'
+              examples:
+                '201':
+                  value:
+                    sessionId: 4
+                    isAdmin: true
+          description: Successful login
+      description: Login with Google OAuth
+components:
+  schemas:
+    booking:
+      title: Root Type for booking
+      description: ''
+      type: object
+      properties:
+        movie:
+          type: string
+        showtime:
+          type: string
+        seat:
+          type: string
+      example:
+        movie: 'The Godfather: Part II'
+        showtime: '6:00pm'
+        seat: '4'
+    message:
+      title: Root Type for message
+      description: ''
+      type: object
+      properties:
+        message:
+          type: string
+      example:
+        message: some text
+    session:
+      title: Root Type for session
+      description: ''
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      example:
+        username: admin
+        password: password
+    movie:
+      title: Root Type for movie
+      description: ''
+      type: object
+      properties:
+        title:
+          type: string
+        showtimes:
+          type: array
+          items:
+            type: string
+      example:
+        title: The Dark Knight
+        showtimes:
+          - '8:00pm'
+    googleOAuthRequestBody:
+      title: Root Type for googleOAuthRequestBody
+      description: ''
+      type: object
+      properties:
+        clientId:
+          type: string
+        client_id:
+          type: string
+        credential:
+          type: string
+        select_by:
+          type: string
+      example:
+        clientId: 301229724153-uqr45k3dpt7ivu1mmj9d5cv2e3hjaq5m.apps.googleusercontent.com
+        client_id: 301229724153-uqr45k3dpt7ivu1mmj9d5cv2e3hjaq5m.apps.googleusercontent.com
+        credential: >-
+          eyJhbGciOiJSUzI1NiIsImtpZCI6IjI1NWNjYTZlYzI4MTA2MDJkODBiZWM4OWU0NTZjNDQ5NWQ3NDE4YmIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2NzgxODg3MjYsImF1ZCI6IjMwMTIyOTcyNDE1My11cXI0NWszZHB0N2l2dTFtbWo5ZDVjdjJlM2hqYXE1bS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwMTE2NDEyNTEyNTAzMTk1OTE0MyIsImhkIjoidm9jby5lZSIsImVtYWlsIjoicmF0dGFzZXAucm9iaW5Adm9jby5lZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhenAiOiIzMDEyMjk3MjQxNTMtdXFyNDVrM2RwdDdpdnUxbW1qOWQ1Y3YyZTNoamFxNW0uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJuYW1lIjoiUm9iaW4gUmF0dGFzZXAiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUdObXl4WTc4V0hXNWtoREdQMllqYzdpNzY2TFdMUk81enVZOXktbGNWVVU9czk2LWMiLCJnaXZlbl9uYW1lIjoiUm9iaW4iLCJmYW1pbHlfbmFtZSI6IlJhdHRhc2VwIiwiaWF0IjoxNjc4MTg5MDI2LCJleHAiOjE2NzgxOTI2MjYsImp0aSI6IjExYmE4OTllNDk4NDc5Y2FmMzdlMGNjNTRmYjdiZjM1ZGU0Y2FmN2MifQ.La6rarjPYJOLgGKGBh9YmkNNvt7TD42P_yCThxjIGWC9XjlSDFV3oPoXyomrFvanyHG9BSEOqHuI5jkJ1lJBOcXIweiMVgBY7P6xRCeicEteTRoaKml3cvLIF4IINWBG6ck3P_P_hdN78uy8_O0-iZBqUu6L5mHAMite-SleotsUzyjmPnvALoaK1EoIoaFxSnDKAfppmWquGptXqbIizLeFSdMAQebs_q02FplTqckTKbMlcIqbuY_dFaZegSEOq_ly7jXkJwVpOMjCiMONf-bC_dh_V-Qj8F3QMxW_sWRh6dJFi1Ek072NzgveH0S4pRr95GCkeCkNZ0CZejTTng
+        select_by: btn
+  securitySchemes:
+    cookieauth:
+      type: apiKey
+      description: cookieauth
+      name: cookie
+      in: header
+tags:
+  - name: /bookings
+    description: ''
+  - name: /sessions
+    description: ''
+  - name: /users
+    description: ''
